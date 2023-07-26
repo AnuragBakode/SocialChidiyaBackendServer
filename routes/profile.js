@@ -3,8 +3,8 @@ const { verify } = require('./verifyToken')
 const User = require('../model/User')
 const multer = require('multer');
 const Post = require('../model/Post');
-const Comment = require('../model/Comment');
-const upload = multer({ dest: 'uploads/' })
+const cloudinary = require("../cloudinary")
+const upload = multer({ storage: multer.diskStorage({}) })
 
 router.get('/profile', verify, async (req, res) => {
     const userId = req.user._id;
@@ -34,7 +34,12 @@ router.post('/updateProfile', verify, upload.single('profilePicture'), async (re
     try {
         const user = await User.findById(req.user._id)
         if(req.file){
-            user.profilePicture = req.file.path
+
+            const result = cloudinary.uploader.upload(req.file.path)
+
+            user.profilePicture = (await result).secure_url
+
+            user.cloudinary_id = (await result).public_id
         }
         
         user.bio = req.body.bio

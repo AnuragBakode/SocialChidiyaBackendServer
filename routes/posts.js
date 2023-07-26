@@ -2,12 +2,11 @@ const router = require('express').Router()
 const { verify } = require('./verifyToken')
 const multer = require('multer')
 const Post = require('../model/Post')
-const upload = multer({ dest: 'uploads/' })
-const { default: mongoose, Schema } = require('mongoose')
+// const upload = multer({ dest: 'uploads/' })
+const cloudinary = require('../cloudinary')
+const upload = multer({ storage: multer.diskStorage({}) })
 const Comment = require('../model/Comment')
 const User = require('../model/User')
-const { json } = require('express')
-const ObjectId = require('mongoose').Types.ObjectId;
 
 router.get('/posts', verify, async (req, res) => {
     const page = req.query.page
@@ -26,13 +25,16 @@ router.get('/posts', verify, async (req, res) => {
 
 
 router.post('/uploadPost', verify, upload.single('image'), async (req, res) => {
-    const post = new Post({
-        description: req.body.description,
-        imgUrl: req.file.path,
-        owner: req.user._id
-    })
-
     try {
+
+        const result = cloudinary.uploader.upload(req.file.path)
+        const post = new Post({
+            description: req.body.description,
+            imgUrl: (await result).secure_url,
+            owner: req.user._id,
+            cloudinary_id: (await result).public_id
+        })
+
         const savedPost = await post.save();
         const user = await User.findById(req.user._id);
         user.posts.push(savedPost)
@@ -100,6 +102,9 @@ router.post('/deletePost/:id', verify, async (req, res) => {
 
     try {
         const currentPost = await Post.findById(req.params.id).populate('comments')
+
+        await cloudinary.uploader.destroy(currentPost.cloudinary_id)
+
         const postOwner = await User.findById(currentPost.owner)
 
         var index = postOwner.posts.indexOf(currentPost._id);
