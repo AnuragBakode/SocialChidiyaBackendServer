@@ -17,13 +17,36 @@ const app = express();
 dotenv.config()
 
 // Database Connection 
-mongoose.connect(process.env.MONGO_DB_CONNECT , {useNewUrlParser : true})
-.then(()=> console.log("Db connected"))
-.catch((e)=>console.log(e))
+  mongoose
+    .connect(process.env.MONGO_DB_CONNECT, { useNewUrlParser: true })
+    .then(() => console.log("Db connected"))
+    .catch((e) => console.log(e));
 
+  // MiddleWares
+  app.use(
+    cors({
+      origin: "https://social-chidiya.netlify.app",
+      methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+      credentials: true,
+    })
+  );
 
-// MiddleWares
-app.use(cors());
+  // For debugging CORS
+  app.use((req, res, next) => {
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      "https://social-chidiya.netlify.app"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    next();
+  });
 app.use(express.json());
 app.use('/uploads' , express.static('uploads'))
 app.use(auth);
